@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# UV cache
+.uv/
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Config with secrets (do not commit real credentials)
+config/config.yaml
+
+# Output files
+dashboard_report.csv
+
+# Logs
+*.log
+
+# Misc
+*.bak
+*.tmp
