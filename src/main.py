@@ -59,11 +59,12 @@ def generate_and_send_report():
 
 def main():
     config = load_config()
-    # scheduler = ReportScheduler(
-    #     report_func=generate_and_send_report,
-    #     timezone=config.get("timezone", "America/Chicago"),
-    #     report_time=config.get("report_time", "08:00")
-    # )
+    scheduler = ReportScheduler(
+        report_func=generate_and_send_report,
+        timezone=config.get("timezone", "America/Chicago"),
+        report_time=config.get("report_time", "08:00")
+    )
+    scheduler.print_current_time()
     if len(sys.argv) > 1 and sys.argv[1] == "now":
         generate_and_send_report()
     else:

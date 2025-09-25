@@ -1,19 +1,18 @@
+import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import pytz
 import time
+from datetime import datetime
+
+logging.basicConfig()
+logging.getLogger('apscheduler').setLevel(logging.DEBUG)
+
+def report_func():
+    print(">>> Report run at:", datetime.now())
 
 class ReportScheduler:
-    """
-    Schedules the dashboard report to run daily at a specified time and timezone.
-    """
-
     def __init__(self, report_func, timezone: str, report_time: str):
-        """
-        :param report_func: Callable to run for the report (no args)
-        :param timezone: Timezone string (e.g., 'America/Chicago')
-        :param report_time: Time in 'HH:MM' 24h format (local to timezone)
-        """
         self.report_func = report_func
         self.timezone = pytz.timezone(timezone)
         hour, minute = map(int, report_time.split(":"))
@@ -31,7 +30,8 @@ class ReportScheduler:
             self.scheduler.shutdown()
 
     def run_now(self):
-        """
-        Run the report immediately (on-demand).
-        """
         self.report_func()
+
+    def print_current_time(self):
+        now = datetime.now(self.timezone)
+        print(f"Current time in {self.timezone.zone}: {now.strftime('%Y-%m-%d %H:%M:%S')}")
