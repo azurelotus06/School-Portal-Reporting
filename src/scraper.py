@@ -24,22 +24,48 @@ class DashboardScraper:
 
     def _init_driver(self):
         options = Options()
-        options.add_argument("--headless")
+        # options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         self.driver = webdriver.Chrome(options=options)
 
     def login(self):
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+
         self._init_driver()
         self.driver.get(self.LOGIN_URL)
-        time.sleep(2)
-        username = self.driver.find_element(By.NAME, "ctl00$MainContent$LoginUser$UserName")
-        password = self.driver.find_element(By.NAME, "ctl00$MainContent$LoginUser$Password")
+
+        # Wait for the login form to appear (up to 15 seconds)
+        wait = WebDriverWait(self.driver, 15)
+        
+        # Wait for the iframe to appear and switch to it
+        iframe = wait.until(EC.presence_of_element_located((By.ID, "iFrameLogin")))
+        self.driver.switch_to.frame(iframe)
+        
+        username = wait.until(
+            EC.presence_of_element_located((By.ID, "tbLogin"))
+        )
+        password = wait.until(
+            EC.presence_of_element_located((By.ID, "tbPassword"))
+        )
+        print(self.config["credentials"]["username"])
         username.send_keys(self.config["credentials"]["username"])
         password.send_keys(self.config["credentials"]["password"])
-        login_btn = self.driver.find_element(By.NAME, "ctl00$MainContent$LoginUser$LoginButton")
+
+        # Find and click the login button (by text or type)
+        login_btn = wait.until(
+            EC.element_to_be_clickable((By.ID, "btLogin"))
+        )
         login_btn.click()
-        time.sleep(3)
+
+        # Wait for dashboard or error message
+        wait.until(
+            EC.any_of(
+                EC.presence_of_element_located((By.XPATH, '//div[contains(text(), "Dashboard")]')),
+                EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "MuiPaper-root")]'))
+            )
+        )
         # TODO: Add error handling for failed login
 
     def scrape_dashboard(self) -> List[Dict[str, Any]]:

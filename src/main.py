@@ -1,11 +1,12 @@
 import os
 import sys
 import traceback
-from src.scraper import DashboardScraper
-from src.utils import write_csv
-from src.emailer import EmailJSClient
-from src.scheduler import ReportScheduler
 import yaml
+
+from scraper import DashboardScraper
+from utils import write_csv
+from emailer import EmailJSClient
+from scheduler import ReportScheduler
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "../config/config.yaml")
 OUTPUT_CSV = os.path.join(os.path.dirname(__file__), "../dashboard_report.csv")
@@ -58,11 +59,11 @@ def generate_and_send_report():
 
 def main():
     config = load_config()
-    scheduler = ReportScheduler(
-        report_func=generate_and_send_report,
-        timezone=config.get("timezone", "America/Chicago"),
-        report_time=config.get("report_time", "08:00")
-    )
+    # scheduler = ReportScheduler(
+    #     report_func=generate_and_send_report,
+    #     timezone=config.get("timezone", "America/Chicago"),
+    #     report_time=config.get("report_time", "08:00")
+    # )
     if len(sys.argv) > 1 and sys.argv[1] == "now":
         generate_and_send_report()
     else:

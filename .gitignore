@@ -11,6 +11,7 @@ venv/
 
 # UV cache
 .uv/
+uv.lock
 
 # IDE/editor
 .vscode/
@@ -33,3 +34,5 @@ dashboard_report.csv
 # Misc
 *.bak
 *.tmp
+
+src/school_portal_reporting.egg-info/*

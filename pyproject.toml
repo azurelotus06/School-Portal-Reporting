@@ -1,0 +1,22 @@
+[project]
+name = "school-portal-reporting"
+version = "1.0.0"
+description = "Automated student dashboard scraper and CSV emailer for Laurel Springs Genius SIS"
+authors = [
+    { name = "Your Name", email = "your@email.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "selenium",
+    "pyyaml",
+    "apscheduler",
+    "pytz",
+    "requests"
+]
+
+[tool.uv]
+# UV-specific settings can be added here if needed
+
+[build-system]
+requires = ["setuptools", "wheel", "uv"]
+build-backend = "setuptools.build_meta"
