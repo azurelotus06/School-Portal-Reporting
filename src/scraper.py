@@ -59,12 +59,12 @@ class DashboardScraper:
         )
         login_btn.click()
 
-        # Wait for dashboard or error message
+        # **SWITCH BACK TO DEFAULT CONTENT (this is critical!)**
+        self.driver.switch_to.default_content()
+
+        # Wait for dashboard header text after login
         wait.until(
-            EC.any_of(
-                EC.presence_of_element_located((By.XPATH, '//div[contains(text(), "Dashboard")]')),
-                EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "MuiPaper-root")]'))
-            )
+            EC.presence_of_element_located((By.XPATH, '//h2[contains(@class, "border-bottom") and contains(text(),"Dashboard")]'))
         )
         # TODO: Add error handling for failed login
 
@@ -77,38 +77,57 @@ class DashboardScraper:
         data = []
 
         # Get student tabs (if multiple students)
-        student_tabs = self.driver.find_elements(By.CSS_SELECTOR, ".MuiTabs-flexContainer button")
-        for tab in student_tabs:
-            tab.click()
-            time.sleep(1)
+        student_tabs = self.driver.find_elements(By.CSS_SELECTOR, "ul#nav2 li a")
+        num_tabs = len(student_tabs)
+        for tab_idx in range(num_tabs):
+            # Get fresh tabs each iteration because DOM may reload
+            student_tabs = self.driver.find_elements(By.CSS_SELECTOR, "ul#nav2 li a")
+            tab = student_tabs[tab_idx]  # this ref is fresh
+
             student_name = tab.text.strip()
+            tab.click()
+            time.sleep(2)
 
             # Find all course cards
-            course_cards = self.driver.find_elements(By.CSS_SELECTOR, "div.MuiPaper-root.MuiPaper-elevation1")
+            course_cards = self.driver.find_elements(By.CSS_SELECTOR, 'div.col-lg-4.col-xl-4.mb-3')
             for card in course_cards:
                 try:
                     # Course Name
-                    course_name_elem = card.find_element(By.CSS_SELECTOR, "div.MuiCardContent-root > div:nth-child(2)")
+                    course_name_elem = card.find_element(By.CSS_SELECTOR, ".card-title")
                     course_name = course_name_elem.text.strip()
 
                     # Filter by config
-                    if not self.config["courses"].get(course_name, False):
+                    if not self.config["courses"].get(course_name, True):
                         continue
 
                     # Course Period
-                    period_elem = card.find_element(By.CSS_SELECTOR, "div.MuiCardContent-root > div:nth-child(3)")
+                    period_elem = card.find_element(By.CSS_SELECTOR, "small.text-muted")
                     course_period = period_elem.text.strip()
 
                     # Current Grade (%)
                     try:
-                        grade_elem = card.find_element(By.CSS_SELECTOR, "span[style*='color']")
-                        current_grade = grade_elem.text.replace("%", "").strip()
+                        grade_elem = card.find_element(By.CSS_SELECTOR, ".card-grade")
+                        current_grade = grade_elem.text.replace("%", "").replace(" ", "").strip()
                     except Exception:
                         current_grade = ""
 
-                    # Current Grade Level (not always present, fallback to blank)
-                    current_grade_level = ""
-                    # (If available, parse from card or elsewhere)
+                    # Current Grade Level (Letter, per rubric)
+                    try:
+                        grade_num = float(current_grade)
+                        if grade_num < 70:
+                            current_grade_level = "F"
+                        elif 70 <= grade_num < 75:
+                            current_grade_level = "D"
+                        elif 75 <= grade_num < 80:
+                            current_grade_level = "C"
+                        elif 80 <= grade_num < 90:
+                            current_grade_level = "B"
+                        elif grade_num >= 90:
+                            current_grade_level = "A"
+                        else:
+                            current_grade_level = ""
+                    except Exception:
+                        current_grade_level = ""
 
                     # Total Assignments, Expected, Completed, Overdue
                     actual_assignments = ""
@@ -116,33 +135,59 @@ class DashboardScraper:
                     completed_assignments = ""
                     overdue_assignments = ""
                     try:
-                        actual_elem = card.find_element(By.XPATH, ".//div[contains(text(),'Actual')]/following-sibling::div")
-                        actual_assignments = actual_elem.text.split("of")[-1].strip()
-                        completed_assignments = actual_elem.text.split("of")[0].strip()
+                        actual_elem = card.find_element(By.XPATH, ".//span[contains(@class,'progress-mark-tooltip-label') and contains(text(), 'Actual')]/following-sibling::span//label")
+                        actual_text = actual_elem.text.strip()  # e.g., "2 of 2"
+                        if "of" in actual_text:
+                            completed_assignments, actual_assignments = [s.strip() for s in actual_text.split("of", 1)]
+                        else:
+                            completed_assignments = actual_text.strip()
+                            actual_assignments = ""
                     except Exception:
                         pass
                     try:
-                        expected_elem = card.find_element(By.XPATH, ".//div[contains(text(),'Expected')]/following-sibling::div")
-                        expected_assignments = expected_elem.text.split("of")[-1].strip()
-                    except Exception:
-                        pass
+                        # Grab the "expected" line (e.g., "10 of 40")
+                        expected_elem = card.find_element(
+                            By.XPATH,
+                            ".//span[contains(@class, 'progress-mark-tooltip expected')]" +
+                            "/span[contains(@class, 'progress-mark-tooltip-container')]" +
+                            "/span[contains(@class, 'progress-mark-tooltip-content')]"
+                        )
+                        expected_text = expected_elem.text.strip()  # e.g. "10 of 40"
+                        if "of" in expected_text:
+                            expected_assignments = expected_text.split("of")[0].strip()
+                        else:
+                            # fallback if not in expected format
+                            expected_assignments = expected_text.strip()
+                    except Exception as e:
+                        print(f"[ERROR] Failed to get expected_assignments: {e}")
+                        expected_assignments = ""
+                        return
                     try:
-                        overdue_elem = card.find_element(By.XPATH, ".//div[contains(text(),'Overdue')]/following-sibling::div")
-                        overdue_assignments = overdue_elem.text.strip()
+                        overdue_assignments = str(int(expected_assignments) - int(completed_assignments))
                     except Exception:
                         overdue_assignments = ""
 
                     # Minutes Spent
                     try:
-                        min_elem = card.find_element(By.XPATH, ".//span[contains(text(),'min')]")
+                        min_elem = card.find_element(
+                            By.XPATH,
+                            './/div[contains(@class, "text-right") and contains(., "min")]'
+                        )
                         minutes_spent = min_elem.text.replace("min", "").strip()
                     except Exception:
                         minutes_spent = ""
 
                     # Days Left
                     try:
-                        days_elem = card.find_element(By.XPATH, ".//span[contains(text(),'left')]")
-                        days_left = days_elem.text.replace("left", "").replace("d", "").strip()
+                        days_elem = card.find_element(
+                            By.XPATH,
+                            './/div[contains(@class,"align-self-center")][contains(., "left")]'
+                        )
+                        days_left = (
+                            days_elem.text.replace("left", "")
+                            .replace("d", "")
+                            .strip()
+                        )
                     except Exception:
                         days_left = ""
 
