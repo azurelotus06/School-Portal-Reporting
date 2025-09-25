@@ -29,6 +29,38 @@ class DashboardScraper:
         options.add_argument("--disable-dev-shm-usage")
         self.driver = webdriver.Chrome(options=options)
 
+    def _add_courses_to_config(self, new_courses, config_path: str = "config/config.yaml"):
+        """
+        Adds each course in `new_courses` (list or set) as `course_name: true` above '# Add more courses as needed'.
+        """
+        if not new_courses:
+            return
+        with open(config_path, "r") as f:
+            lines = f.readlines()
+
+        # Locate courses section and insertion point
+        course_section_idx = None
+        insert_idx = None
+        for idx, line in enumerate(lines):
+            if line.strip() == "courses:":
+                course_section_idx = idx
+            if "# Add more courses as needed" in line:
+                insert_idx = idx
+                break
+
+        if course_section_idx is not None and insert_idx is not None:
+            # Prepare a set of existing course names in config
+            course_lines = lines[course_section_idx+1:insert_idx]
+            existing = set(l.split(':', 1)[0].strip() for l in course_lines if ':' in l)
+
+            insert_lines = [f"  {name}: true\n" for name in new_courses if name not in existing]
+            if insert_lines:
+                # Insert all new courses above the comment
+                for offset, il in enumerate(insert_lines):
+                    lines.insert(insert_idx + offset, il)
+                with open(config_path, "w") as f:
+                    f.writelines(lines)
+                    
     def login(self):
         from selenium.webdriver.support.ui import WebDriverWait
         from selenium.webdriver.support import expected_conditions as EC
@@ -75,6 +107,7 @@ class DashboardScraper:
         self.driver.get(self.DASHBOARD_URL)
         time.sleep(2)
         data = []
+        missing_courses = []
 
         # Get student tabs (if multiple students)
         student_tabs = self.driver.find_elements(By.CSS_SELECTOR, "ul#nav2 li a")
@@ -95,6 +128,10 @@ class DashboardScraper:
                     # Course Name
                     course_name_elem = card.find_element(By.CSS_SELECTOR, ".card-title")
                     course_name = course_name_elem.text.strip()
+                    
+                    # Collect missing courses, don't immediately update config
+                    if course_name not in self.config["courses"]:
+                        missing_courses.insert(0, course_name)
 
                     # Filter by config
                     if not self.config["courses"].get(course_name, True):
@@ -214,7 +251,13 @@ class DashboardScraper:
                     })
                 except Exception:
                     continue
-
+        # At the END (right before return), update the yaml ONCE
+        if missing_courses:
+            self._add_courses_to_config(set(missing_courses), "config/config.yaml")
+            # Also update in-memory config
+            for c in set(missing_courses):
+                self.config["courses"][c] = True
+        print(data)
         return data
 
     def close(self):
