@@ -1,0 +1,33 @@
+# School Portal Reporting App Configuration
+
+# Login credentials for laurelsprings.geniussis.com
+credentials:
+  username: "your_username"
+  password: "your_password"
+
+# List of course names to include in the report (checkbox style: set to true to include)
+courses:
+  "Academy Chemistry with Workshop OL v5 A": true
+  "Academy Honors English 2 with Workshop ...": false
+  "Algebra 2 with Workshop OL v4.1 A -- Tinney...": true
+  # Add more courses as needed
+
+# List of email addresses to send the CSV report to
+emails:
+  - "parent1@example.com"
+  - "student1@example.com"
+
+# EmailJS configuration
+emailjs:
+  service_id: "your_service_id"
+  template_id: "your_template_id"
+  public_key: "your_public_key"
+
+# Timezone for scheduling (default: America/Chicago for CT)
+timezone: "America/Chicago"
+
+# Report time (24h format, local to timezone above)
+report_time: "08:00"
+
+# (Optional) Set to true to enable error alert emails
+send_error_alerts: true
