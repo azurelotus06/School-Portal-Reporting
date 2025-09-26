@@ -20,7 +20,15 @@ class EmailJSClient:
         self.template_id = template_id
         self.public_key = public_key
 
-    def send_csv_report(self, csv_path: str, recipients: List[str], student_name: str = ""):
+    def send_csv_report(
+        self,
+        csv_path: str,
+        recipients: List[str],
+        student_name: str = "",
+        grade_summary: str = None,
+        total_assignments: str = None,
+        total_past_due: str = None
+    ):
         # Read and encode CSV as base64
         with open(csv_path, "rb") as f:
             csv_bytes = f.read()
@@ -32,6 +40,12 @@ class EmailJSClient:
             "student_name": student_name,
             "csv_content": f"data:text/csv;base64,{csv_b64}"
         }
+        if grade_summary is not None:
+            template_params["grade_summary"] = grade_summary
+        if total_assignments is not None:
+            template_params["total_assignments"] = total_assignments
+        if total_past_due is not None:
+            template_params["total_past_due"] = total_past_due
 
         # Use the CSV filename for the attachment
         csv_filename = os.path.basename(csv_path)
