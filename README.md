@@ -26,9 +26,15 @@ A production-grade Python 3.12 app to automate daily and on-demand student dashb
    cd School-Portal-Reporting
    ```
 
+2. **Use venv for package:**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
 2. **Install UV (if not already):**
    ```bash
-   curl -Ls https://astral.sh/uv/install.sh | bash
+   pip install uv
    ```
 
 3. **Install dependencies:**
@@ -38,10 +44,11 @@ A production-grade Python 3.12 app to automate daily and on-demand student dashb
 
 4. **Configure EmailJS:**
    - Create a free account at [EmailJS](https://www.emailjs.com/).
+   - Subscribe plan (at least PERSONAL)
    - Set up an email service and template.
    - Note your service ID, template ID, and public (user) key.
 
-5. **Edit `config/config.yaml`:**
+5. **Edit `config/config.yaml` from `config/config.yaml.example` :**
    - Enter your Genius SIS credentials.
    - Set which courses to include (true/false).
    - Add recipient emails.
@@ -62,11 +69,14 @@ A production-grade Python 3.12 app to automate daily and on-demand student dashb
   Leave running (e.g., in a screen/tmux session or as a service).
 
 - **CSV Output:**
-  - The CSV is generated as `dashboard_report.csv` in the project root.
+  - The CSV is generated in the reports directory.
   - Format:
     ```
     Student Name,Course Name,Course Period,Current Grade (%),Current Grade Level,Total Assignments,Expected Assignments,Completed Assignments,Overdue Assignments,Minutes Spent,Days Left,Class Status,Report Date
     ```
+## Checkbox
+- The checkbox is checked by default, so if you don't uncheck it, that course will be included in the CSV file.
+- You can update on courses.html file.
 
 ## Error Handling
 

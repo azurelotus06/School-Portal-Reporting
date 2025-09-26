@@ -36,3 +36,5 @@ dashboard_report.csv
 *.tmp
 
 src/school_portal_reporting.egg-info/*
+TODO.md
+reports/*
