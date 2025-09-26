@@ -1,52 +1,94 @@
-import subprocess
+import requests
 import base64
-import json
 from typing import List
 import os
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import time
+import tempfile
+
 class EmailJSClient:
     """
-    Sends emails with CSV reports using the EmailJS Node.js SDK via a subprocess call.
+    Sends emails with CSV reports using the EmailJS REST API.
     """
 
-    def __init__(self, service_id: str, template_id: str, public_key: str, private_key: str):
+    API_URL = "https://api.emailjs.com/api/v1.0/email/send"
+
+    def __init__(self, service_id: str, template_id: str, public_key: str):
         self.service_id = service_id
         self.template_id = template_id
         self.public_key = public_key
-        self.private_key = private_key
 
     def send_csv_report(self, csv_path: str, recipients: List[str], student_name: str = ""):
-        # Read and encode CSV as base64 (if needed for your template)
+        # Read and encode CSV as base64
         with open(csv_path, "rb") as f:
             csv_bytes = f.read()
             csv_b64 = base64.b64encode(csv_bytes).decode("utf-8")
 
-        # Prepare template_params (customize as needed for your EmailJS template)
+        # Prepare template_params
         template_params = {
             "email": ",".join(recipients),
             "student_name": student_name,
-            "csv_base64": csv_b64,
-            "csv_filename": os.path.basename(csv_path)
+            "csv_content": f"data:text/csv;base64,{csv_b64}"
         }
 
-        # Use the first recipient for the to_email field (customize as needed)
-        recipient_email = recipients[0] if recipients else ""
+        # Use the CSV filename for the attachment
+        csv_filename = os.path.basename(csv_path)
 
-        args = [
-            "node",
-            "send_email.js",
-            self.service_id,
-            self.template_id,
-            recipient_email,
-            json.dumps(template_params),
-            self.public_key,
-            self.private_key
-        ]
+        payload = {
+            "service_id": self.service_id,
+            "template_id": self.template_id,
+            "user_id": self.public_key,
+            "template_params": template_params,
+        }
 
+        # Use Selenium to send the POST request via browser JS
+        html_content = f"""
+        <html>
+        <body>
+        <script>
+        async function sendEmail() {{
+            const payload = {payload};
+            try {{
+                const resp = await fetch("{self.API_URL}", {{
+                    method: "POST",
+                    headers: {{
+                        "Content-Type": "application/json"
+                    }},
+                    body: JSON.stringify(payload)
+                }});
+                const text = await resp.text();
+                document.body.innerText = "STATUS:" + resp.status + "\\n" + text;
+            }} catch (e) {{
+                document.body.innerText = "ERROR:" + e;
+            }}
+        }}
+        sendEmail();
+        </script>
+        </body>
+        </html>
+        """
+
+        # Write HTML to a temp file
+        with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False) as f:
+            f.write(html_content)
+            temp_html_path = f.name
+
+        # Set up Selenium headless Chrome
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        driver = webdriver.Chrome(options=options)
         try:
-            result = subprocess.run(args, capture_output=True, text=True, check=True)
-            print("Node.js script output:")
-            print(result.stdout)
-        except subprocess.CalledProcessError as e:
-            print("Node.js script failed:")
-            print(e.stderr)
+            driver.get("file://" + temp_html_path)
+            time.sleep(5)  # Wait for JS to execute
+            result = driver.find_element("tag name", "body").text
+            if result.startswith("STATUS:200"):
+                print(f"Email sent to {','.join(recipients)}")
+            else:
+                print(f"Failed to send email to {','.join(recipients)}: {result}")
+        finally:
+            driver.quit()
+            os.remove(temp_html_path)
