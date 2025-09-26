@@ -16,40 +16,49 @@ def load_config():
         return yaml.safe_load(f)
 
 def send_error_alert(config, error_msg):
-    if config.get("send_error_alerts", False):
-        emailjs = config["emailjs"]
-        client = EmailJSClient(
-            emailjs["service_id"],
-            emailjs["template_id"],
-            emailjs["public_key"]
-        )
-        recipients = config.get("emails", [])
-        for email in recipients:
-            try:
-                client.send_csv_report(
-                    [email],
-                    csv_path=None,
-                    subject="School Portal Reporting Error",
-                    body=f"An error occurred:\n\n{error_msg}"
-                )
-            except Exception as e:
-                print(f"Failed to send error alert to {email}: {e}")
+    return
 
 def generate_and_send_report():
+    import collections
+
     config = load_config()
     scraper = DashboardScraper(CONFIG_PATH)
     try:
         data = scraper.scrape_dashboard()
-        write_csv(data, OUTPUT_CSV)
+        # Group data by student name
+        students = collections.defaultdict(list)
+        for row in data:
+            students[row["Student Name"]].append(row)
+
+        # Ensure reports directory exists
+        reports_dir = os.path.join(os.path.dirname(__file__), "../reports")
+        os.makedirs(reports_dir, exist_ok=True)
+
         emailjs = config["emailjs"]
         client = EmailJSClient(
             emailjs["service_id"],
             emailjs["template_id"],
             emailjs["public_key"]
         )
-        recipients = config.get("emails", [])
-        client.send_csv_report(recipients, OUTPUT_CSV)
-        print("Report generated and emailed successfully.")
+
+        for student_name, student_data in students.items():
+            # Write CSV for this student
+            safe_name = student_name.replace(" ", "_")
+            csv_path = os.path.join(reports_dir, f"{safe_name}.csv")
+            write_csv(student_data, csv_path)
+
+            # Get emails for this student
+            emails_dict = config.get("emails", {})
+            recipients = emails_dict.get(student_name, [])
+            if not recipients:
+                print(f"No emails found for student: {student_name}, skipping email.")
+                continue
+
+            # Send email with CSV
+            client.send_csv_report(csv_path, recipients, student_name)
+            print(f"Report for {student_name} generated and emailed to: {', '.join(recipients)}")
+
+        print("All student reports generated and emailed successfully.")
     except Exception as e:
         tb = traceback.format_exc()
         print(f"Error: {e}\n{tb}")
