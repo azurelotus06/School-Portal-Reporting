@@ -8,7 +8,7 @@ CSV_HEADER = [
     "Current Grade (%)",
     "Current Grade Level",
     "Total Assignments",
-    "Expected Assignments by Now",
+    "Expected Assignments",
     "Completed Assignments",
     "Overdue Assignments",
     "Minutes Spent",

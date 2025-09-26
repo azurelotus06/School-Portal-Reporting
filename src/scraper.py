@@ -241,7 +241,7 @@ class DashboardScraper:
                         "Current Grade (%)": current_grade,
                         "Current Grade Level": current_grade_level,
                         "Total Assignments": actual_assignments,
-                        "Expected Assignments by Now": expected_assignments,
+                        "Expected Assignments": expected_assignments,
                         "Completed Assignments": completed_assignments,
                         "Overdue Assignments": overdue_assignments,
                         "Minutes Spent": minutes_spent,

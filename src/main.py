@@ -47,20 +47,22 @@ def generate_and_send_report():
             csv_path = os.path.join(reports_dir, f"{safe_name}.csv")
             write_csv(student_data, csv_path)
 
-            # Calculate grade_summary
+            # Calculate grade_summary (bulleted, multi-line format)
             from collections import defaultdict
             grade_map = defaultdict(list)
             for row in student_data:
                 grade = row.get("Current Grade Level", "")
                 course = row.get("Course Name", "")
                 if grade and course:
-                    grade_map[grade].append(course)
+                    grade_map[grade].append((course))
             grade_order = ["A", "B", "C", "D", "F"]
             summary_lines = []
             for grade in grade_order:
                 courses = grade_map.get(grade, [])
                 if courses:
-                    summary_lines.append(f"({len(courses)}) {grade} ({', '.join(courses)})")
+                    summary_lines.append(f"({len(courses)}) {grade}")
+                    for course in courses:
+                        summary_lines.append(f"- {course}")
             grade_summary = "\n".join(summary_lines)
 
             # Calculate total_assignments and total_past_due
@@ -70,7 +72,7 @@ def generate_and_send_report():
                     return v if v > 0 else 0
                 except Exception:
                     return 0
-            total_assignments = sum(safe_int(row.get("Total Assignments", 0)) for row in student_data)
+            total_assignments = sum(safe_int(row.get("Expected Assignments", 0)) for row in student_data)
             total_past_due = sum(safe_int(row.get("Overdue Assignments", 0)) for row in student_data)
 
             # Get emails for this student

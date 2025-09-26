@@ -16,7 +16,7 @@ A production-grade Python 3.12 app to automate daily and on-demand student dashb
 - Python 3.12+
 - Chrome browser and [ChromeDriver](https://chromedriver.chromium.org/downloads) installed and in PATH
 - [UV](https://github.com/astral-sh/uv) for package management (not pip)
-- EmailJS account (free) with service/template/public key
+- EmailJS account (at least a PERSONAL subscription) with service/template/public key
 
 ## Setup
 
@@ -31,23 +31,17 @@ A production-grade Python 3.12 app to automate daily and on-demand student dashb
    curl -Ls https://astral.sh/uv/install.sh | bash
    ```
 
-3. **Create and activate the virtual environment:**
+3. **Install dependencies:**
    ```bash
-   uv venv
-   source .venv/bin/activate
+   uv sync
    ```
 
-4. **Install dependencies:**
-   ```bash
-   uv pip install -r requirements.txt
-   ```
-
-5. **Configure EmailJS:**
+4. **Configure EmailJS:**
    - Create a free account at [EmailJS](https://www.emailjs.com/).
    - Set up an email service and template.
    - Note your service ID, template ID, and public (user) key.
 
-6. **Edit `config/config.yaml`:**
+5. **Edit `config/config.yaml`:**
    - Enter your Genius SIS credentials.
    - Set which courses to include (true/false).
    - Add recipient emails.
@@ -71,7 +65,7 @@ A production-grade Python 3.12 app to automate daily and on-demand student dashb
   - The CSV is generated as `dashboard_report.csv` in the project root.
   - Format:
     ```
-    Student Name,Course Name,Course Period,Current Grade (%),Current Grade Level,Total Assignments,Expected Assignments by Now,Completed Assignments,Overdue Assignments,Minutes Spent,Days Left,Class Status,Report Date
+    Student Name,Course Name,Course Period,Current Grade (%),Current Grade Level,Total Assignments,Expected Assignments,Completed Assignments,Overdue Assignments,Minutes Spent,Days Left,Class Status,Report Date
     ```
 
 ## Error Handling
