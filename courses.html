@@ -153,7 +153,7 @@
     }
 
     function updateCoursesInYAML(yamlText, updatedCourses) {
-      // Replace the courses section with the updated values
+      // Replace the courses section with the updated values, preserving comments and blank lines
       const lines = yamlText.split(/[\r\n]+/);
       let inCourses = false;
       let courseIndent = null;
@@ -184,6 +184,15 @@
       }
       if (inCourses && startIdx !== -1) {
         if (endIdx === -1) endIdx = lines.length;
+        // Preserve comments and blank lines in the courses section, only replace course entries
+        const preservedLines = [];
+        for (let i = startIdx; i < endIdx; i++) {
+          const line = lines[i];
+          // If line is a comment or blank, keep it
+          if (!line.trim() || line.trim().startsWith('#')) {
+            preservedLines.push(line);
+          }
+        }
         // Build new course lines
         const courseLines = updatedCourses.map(c =>
           `${courseIndent}${c.name}: ${c.active ? 'true' : 'false'}`
@@ -192,7 +201,8 @@
         const newLines = [
           ...lines.slice(0, startIdx),
           ...courseLines,
-          ...lines.slice(endIdx)
+          ...preservedLines,
+          ...lines.slice(endIdx),
         ];
         return newLines.join('\n');
       }
