@@ -61,6 +61,44 @@ class DashboardScraper:
                 with open(config_path, "w") as f:
                     f.writelines(lines)
                     
+    def _handle_post_login_alert(self, timeout=5):
+        """
+        Handles the post-login alert by clicking "DON'T SHOW AGAIN" and "CLOSE" if present,
+        using robust selectors based on input[name$=...] patterns.
+        """
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.common.exceptions import TimeoutException
+
+        wait = WebDriverWait(self.driver, timeout)
+        try:
+            # Wait for the "DON'T SHOW AGAIN" input button (by name pattern)
+            dont_show_btn = wait.until(
+                EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, 'input[type="submit"][name="ctl00$ContentPlaceHolder1$AnnouncementList1$Repeater2$ctl01$ButtonDismiss"]')
+                )
+            )
+            dont_show_btn.click()
+
+            # Wait for and accept the browser alert (confirmation dialog)
+            try:
+                alert = self.driver.switch_to.alert
+                alert.accept()
+            except Exception:
+                pass  # No alert appeared
+
+            # Wait for the "CLOSE" input button (by name pattern)
+            close_btn = wait.until(
+                EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, 'input[type="submit"][name="ctl00$ContentPlaceHolder1$AnnouncementList1$btnCancel"]')
+                )
+            )
+            close_btn.click()
+            time.sleep(2)
+        except TimeoutException:
+            # Alert did not appear; nothing to do
+            pass
+
     def login(self):
         from selenium.webdriver.support.ui import WebDriverWait
         from selenium.webdriver.support import expected_conditions as EC
@@ -93,11 +131,15 @@ class DashboardScraper:
 
         # **SWITCH BACK TO DEFAULT CONTENT (this is critical!)**
         self.driver.switch_to.default_content()
+        self._handle_post_login_alert()
 
         # Wait for dashboard header text after login
         wait.until(
             EC.presence_of_element_located((By.XPATH, '//h2[contains(@class, "border-bottom") and contains(text(),"Dashboard")]'))
         )
+
+        # Handle post-login alert if present
+
         # TODO: Add error handling for failed login
 
     def scrape_dashboard(self) -> List[Dict[str, Any]]:
